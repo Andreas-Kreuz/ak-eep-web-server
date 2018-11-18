@@ -57,22 +57,34 @@ public class Main {
     }
 
     private static Path parseArguments(String[] args) throws IOException {
+        Path configFilePath = Paths.get("eep-lua-out-dir.txt").toAbsolutePath();
         String directoryName;
         if (args.length > 0) {
             directoryName = args[0];
         } else {
-            File dirFile = Paths.get("eep-lua-out-dir.txt").toFile();
+            File dirFile = configFilePath.toFile();
             directoryName = dirFile.exists()
-                    ? new FileContentReader().readFileContent("eep-lua-out-dir.txt")
+                    ? new FileContentReader().readFileContent(configFilePath.getFileName().toString())
                     : "out";
         }
-        return checkPathsOrExit(directoryName);
+        return checkPathsOrExit(directoryName, configFilePath);
     }
 
-    private static Path checkPathsOrExit(String directoryName) {
+    private static Path checkPathsOrExit(String directoryName, Path configFilePath) {
         Path dir = Paths.get(directoryName);
         if (!dir.toFile().isDirectory()) {
-            System.out.println(dir.toFile().getAbsoluteFile() + " ist kein Verzeichnis. - Bitte ein Verzeichnis angeben.");
+            System.out.println("---------------------------------" +
+                    "\nPfad nicht gefunden." +
+                    "\n---------------------------------" +
+                    "\n" +
+                    "\nDer Pfad \"" + dir.toFile().getAbsoluteFile() + "\" ist kein Verzeichnis." +
+                    "\nBitte gib das Verzeichnis \"\\LUA\\ak\\io\\exchange\" in der EEP-Installation an." +
+                    "\n" +
+                    "\n   z.B.: * \"C:\\Trend\\EEP14\\LUA\\ak\\io\\exchange\"" +
+                    "\n         * \"C:\\Trend\\EEP15\\LUA\\ak\\io\\exchange\"" +
+                    "\n" +
+                    "\nHinweis: Du kannst dieses Verzeichnis ohne abschließenden Zeilenumbruch in die " +
+                    "\n         Datei \"" + configFilePath + "\" schreiben.");
             System.exit(1);
         }
         return dir;
