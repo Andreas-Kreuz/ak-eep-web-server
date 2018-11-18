@@ -15,7 +15,6 @@ public class Server {
 
     Server() {
         app = Javalin.create();
-        app.enableCaseSensitiveUrls();
         app.enableCorsForOrigin("*");
     }
 

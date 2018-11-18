@@ -19,7 +19,7 @@ public class JsonContentProvider {
         JSONObject object = new JSONObject(json);
         System.out.println(object.keySet());
         for (String key : object.keySet()) {
-            String url = "/" + key;
+            String url = "/api/v1/" + key;
             String jsonForUrl = object.get(key).toString();
 
             urlsToContent.put(url, jsonForUrl);
