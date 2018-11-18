@@ -56,10 +56,15 @@ public class Main {
         main.startServer();
     }
 
-    private static Path parseArguments(String[] args) {
-        String directoryName = "out";
+    private static Path parseArguments(String[] args) throws IOException {
+        String directoryName;
         if (args.length > 0) {
             directoryName = args[0];
+        } else {
+            File dirFile = Paths.get("eep-lua-out-dir.txt").toFile();
+            directoryName = dirFile.exists()
+                    ? new FileContentReader().readFileContent("eep-lua-out-dir.txt")
+                    : "out";
         }
         return checkPathsOrExit(directoryName);
     }
