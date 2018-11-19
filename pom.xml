@@ -50,6 +50,8 @@
                             <mainClass>ak.eep.web.server.Main</mainClass>
                         </manifest>
                     </archive>
+                    <finalName>ak-eep-web-server-wit-eep-web</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
                     <execution>

@@ -4,5 +4,4 @@ module ak.eep.web.server {
     requires annotations;
     requires io.javalin;
     requires slf4j.api;
-
 }

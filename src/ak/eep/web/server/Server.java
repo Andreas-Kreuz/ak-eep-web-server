@@ -1,6 +1,7 @@
 package ak.eep.web.server;
 
 import io.javalin.Javalin;
+import io.javalin.staticfiles.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,13 +16,14 @@ public class Server {
 
     Server() {
         app = Javalin.create();
-        app.enableCorsForOrigin("*");
+        // app.enableStaticFiles("C:\\Spiele\\Andreas_Kreuz\\ak-eep-web-server\\target\\classes\\public\\ak-eep-web", Location.EXTERNAL)
+        app.enableStaticFiles("/public/ak-eep-web", Location.CLASSPATH)
+                .enableSinglePageMode("/", "/public/ak-eep-web/index.html");
+        app.enableCorsForAllOrigins();
     }
 
     void startServer() {
         app.start(3000);
-        app.get("/", ctx -> ctx
-                .contentType("application/json").result("Ak-EEP-Web-Server"));
     }
 
     /**
