@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+/**
+ * Watch directory for file changes.
+ */
 public class DirectoryWatcher {
     private static Logger log = LoggerFactory.getLogger(DirectoryWatcher.class);
     private final Map<String, Consumer<Change>> fileConsumers;
@@ -26,8 +29,8 @@ public class DirectoryWatcher {
                 StandardWatchEventKinds.OVERFLOW);
     }
 
-    public void addFileConsumer(String filePath, Consumer<Change> fileConsumer) {
-        String fileName = Paths.get(filePath).getFileName().toString();
+    public void addFileConsumer(Path path, Consumer<Change> fileConsumer) {
+        String fileName = path.getFileName().toString();
         this.fileConsumers.putIfAbsent(fileName, fileConsumer);
     }
 

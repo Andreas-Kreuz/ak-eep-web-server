@@ -1,6 +1,6 @@
-package ak.eep.web.server.io;
+package ak.eep.web.server.jsondata;
 
-import ak.eep.web.server.Server;
+import ak.eep.web.server.server.Server;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +8,9 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Provide contents for the webserver under a certain URL.
+ */
 public class JsonContentProvider {
     private static Logger log = LoggerFactory.getLogger(JsonContentProvider.class);
 

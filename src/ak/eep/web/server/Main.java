@@ -1,8 +1,13 @@
 package ak.eep.web.server;
 
+import ak.eep.web.server.io.CommandWriter;
 import ak.eep.web.server.io.DirectoryWatcher;
 import ak.eep.web.server.io.FileContentReader;
-import ak.eep.web.server.io.JsonContentProvider;
+import ak.eep.web.server.io.LogFileWatcher;
+import ak.eep.web.server.log.LogLinesAddedAction;
+import ak.eep.web.server.log.LogClearedAction;
+import ak.eep.web.server.jsondata.JsonContentProvider;
+import ak.eep.web.server.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,38 +15,40 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class Main {
     private static Logger log = LoggerFactory.getLogger(Main.class);
-    private final String jsonDataFile;
-    private final String logInFile;
-    private final String commandOutFile;
-    private final String serverSyncFile;
-    private final String luaReadyFileName;
+    private static boolean testMode;
+    private final Path jsonDataFilePath;
+    private final Path logInFilePath;
+    private final Path commandOutFilePath;
+    private final Path serverSyncFilePath;
+    private final Path luaReadyFilePath;
     private DirectoryWatcher directoryWatcher;
 
     private Main(Path dir) throws IOException {
         this.directoryWatcher = new DirectoryWatcher(dir).watchFilesInBg();
 
-        this.commandOutFile =
-                Paths.get(dir + "/eep-commands.txt").toFile().getAbsolutePath();
-        this.logInFile =
-                Paths.get(dir + "/eep-log.txt").toFile().getAbsolutePath();
-        this.jsonDataFile =
-                Paths.get(dir + "/ak_out_eep-web-server.json").toFile().getAbsolutePath();
-        this.serverSyncFile =
-                Paths.get(dir + "/ak_out_eep-web-server.on-sync-only").toFile().getAbsolutePath();
+        this.commandOutFilePath =
+                Paths.get(dir + "/ak-eep-in.commands").toAbsolutePath();
+        this.logInFilePath =
+                Paths.get(dir + "/ak-eep-out.socket").toAbsolutePath();
+        this.jsonDataFilePath =
+                Paths.get(dir + "/ak-eep-out.json").toAbsolutePath();
+        this.serverSyncFilePath =
+                Paths.get(dir + "/ak-server.iswatching").toAbsolutePath();
         // this.serverReadyFileName =
-        //      Paths.get(dir + "/ak_out_eep-web-server.server-is-ready-for-data").toFile().getAbsolutePath();
-        this.luaReadyFileName =
-                Paths.get(dir + "/ak_out_eep-web-server.lua-is-finished-writing-data").toFile().getAbsolutePath();
+        //      Paths.get(dir + "/ak_out_eep-web-server.server-is-ready-for-data").toAbsolutePath();
+        this.luaReadyFilePath =
+                Paths.get(dir + "/ak-eep-out-json.isfinished").toAbsolutePath();
 
-        File serverSyncFile = new File(this.serverSyncFile);
+        File serverSyncFile = this.serverSyncFilePath.toFile();
         //noinspection ResultOfMethodCallIgnored
         serverSyncFile.createNewFile();
         serverSyncFile.deleteOnExit();
 
-        File luaReadyFile = new File(luaReadyFileName);
+        File luaReadyFile = luaReadyFilePath.toFile();
         //noinspection ResultOfMethodCallIgnored
         luaReadyFile.delete();
         luaReadyFile.deleteOnExit();
@@ -57,6 +64,11 @@ public class Main {
     }
 
     private static Path parseArguments(String[] args) throws IOException {
+        if (args.length > 0 && "--test".equals(args[0])) {
+            testMode = true;
+            args = Arrays.copyOfRange(args, 1, args.length);
+        }
+
         Path configFilePath = Paths.get("eep-lua-out-dir.txt").toAbsolutePath();
         String directoryName;
         if (args.length > 0) {
@@ -64,7 +76,7 @@ public class Main {
         } else {
             File dirFile = configFilePath.toFile();
             directoryName = dirFile.exists()
-                    ? new FileContentReader().readFileContent(configFilePath.getFileName().toString())
+                    ? new FileContentReader().readFileContentDefault(configFilePath)
                     : "out";
         }
         return checkPathsOrExit(directoryName, configFilePath);
@@ -73,18 +85,19 @@ public class Main {
     private static Path checkPathsOrExit(String directoryName, Path configFilePath) {
         Path dir = Paths.get(directoryName);
         if (!dir.toFile().isDirectory()) {
-            System.out.println("---------------------------------" +
-                    "\nPfad nicht gefunden." +
-                    "\n---------------------------------" +
-                    "\n" +
-                    "\nDer Pfad \"" + dir.toFile().getAbsoluteFile() + "\" ist kein Verzeichnis." +
-                    "\nBitte gib das Verzeichnis \"\\LUA\\ak\\io\\exchange\" in der EEP-Installation an." +
-                    "\n" +
-                    "\n   z.B.: * \"C:\\Trend\\EEP14\\LUA\\ak\\io\\exchange\"" +
-                    "\n         * \"C:\\Trend\\EEP15\\LUA\\ak\\io\\exchange\"" +
-                    "\n" +
-                    "\nHinweis: Du kannst dieses Verzeichnis ohne abschließenden Zeilenumbruch in die " +
-                    "\n         Datei \"" + configFilePath + "\" schreiben.");
+            System.out.println(
+                    "---------------------------------" +
+                            "\nPfad nicht gefunden." +
+                            "\n---------------------------------" +
+                            "\n" +
+                            "\nDer Pfad \"" + dir.toFile().getAbsoluteFile() + "\" ist kein Verzeichnis." +
+                            "\nBitte gib das Verzeichnis \"\\LUA\\ak\\io\\exchange\" in der EEP-Installation an." +
+                            "\n" +
+                            "\n   z.B.: * \"C:\\Trend\\EEP14\\LUA\\ak\\io\\exchange\"" +
+                            "\n         * \"C:\\Trend\\EEP15\\LUA\\ak\\io\\exchange\"" +
+                            "\n" +
+                            "\nHinweis: Du kannst dieses Verzeichnis ohne abschließenden Zeilenumbruch in die " +
+                            "\n         Datei \"" + configFilePath + "\" schreiben.");
             System.exit(1);
         }
         return dir;
@@ -92,33 +105,58 @@ public class Main {
 
     private void startServer() {
         log.info(""
-                + "\nCommands will be written to: " + commandOutFile
-                + "\nLogs will be read from     : " + logInFile
-                + "\nJSON data will be read from: " + jsonDataFile);
+                + "\nCommands will be written to: " + commandOutFilePath
+                + "\nLogs will be read from     : " + logInFilePath
+                + "\nJSON data will be read from: " + jsonDataFilePath);
 
-        final Server server = new Server();
+        final Server server = new Server(testMode);
+        connectJsonContentProvider(server);
+        connectCommandWriter(server);
+        connectLogFileWatcher(server);
+        server.startServer();
+    }
+
+    private void connectLogFileWatcher(Server server) {
+        LogFileWatcher logFileWatcher = new LogFileWatcher(logInFilePath);
+        directoryWatcher.addFileConsumer(logInFilePath, logFileWatcher);
+        logFileWatcher.addLogLineConsumer((logLines, reset) -> {
+            if (reset) {
+                server.send(new LogClearedAction());
+            }
+            server.send(new LogLinesAddedAction(logLines));
+        });
+        server.addWsInitialSupplier(() -> new LogLinesAddedAction(logFileWatcher.getAllCurrentLogLines()));
+    }
+
+    private void connectCommandWriter(Server server) {
+        final CommandWriter commandWriter = new CommandWriter(commandOutFilePath);
+        server.addWsActionConsumer((session, message) -> {
+            System.out.println("Received: " + message);
+            commandWriter.writeCommand(message);
+        });
+    }
+
+    private void connectJsonContentProvider(Server server) {
         final JsonContentProvider jsonContentProvider = new JsonContentProvider(server);
         updateJsonData(jsonContentProvider);
 
-        server.startServer();
-
-        directoryWatcher.addFileConsumer(luaReadyFileName, (change) -> {
+        directoryWatcher.addFileConsumer(luaReadyFilePath, (change) -> {
             if (change == DirectoryWatcher.Change.CREATED
                     || change == DirectoryWatcher.Change.MODIFIED) {
                 updateJsonData(jsonContentProvider);
                 //noinspection ResultOfMethodCallIgnored
-                Paths.get(luaReadyFileName).toFile().delete();
+                luaReadyFilePath.toFile().delete();
             }
         });
     }
 
     private void updateJsonData(JsonContentProvider jsonContentProvider) {
         try {
-            log.info("Read file: " + jsonDataFile);
-            String json = new FileContentReader().readFileContent(jsonDataFile);
+            log.info("Read file: " + jsonDataFilePath);
+            String json = new FileContentReader().readFileContentWin1252(jsonDataFilePath);
             jsonContentProvider.updateInput(json);
         } catch (IOException e) {
-            log.info("Cannot read file: " + jsonDataFile, e);
+            log.info("Cannot read file: " + jsonDataFilePath, e);
         }
     }
 }
