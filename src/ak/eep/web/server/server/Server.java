@@ -19,7 +19,7 @@ public class Server {
     private static Logger log = LoggerFactory.getLogger(Server.class);
     private final Javalin app;
     private SortedSet<String> urls = new TreeSet<>();
-    private List<Supplier<WebsocketAction>> initialSuppliers = new ArrayList<>();
+    private List<Supplier<WebsocketEvent>> initialSuppliers = new ArrayList<>();
     private List<BiConsumer<WsSession, String>> websocketConsumers = new ArrayList<>();
     private List<WsSession> sessions = new ArrayList<>();
 
@@ -37,8 +37,8 @@ public class Server {
             ws.onConnect(session -> {
                 log.info("Websocket Connected");
                 sessions.add(session);
-                for (Supplier<WebsocketAction> actionSupplier : initialSuppliers) {
-                    this.send(actionSupplier.get());
+                for (Supplier<WebsocketEvent> actionSupplier : initialSuppliers) {
+                    send(session, actionSupplier.get());
                 }
             });
             ws.onMessage((session, message) -> {
@@ -86,25 +86,39 @@ public class Server {
         this.websocketConsumers.add(onMessageConsumer);
     }
 
-    public void addWsInitialSupplier(Supplier<WebsocketAction> initialSupplier) {
+    public void addWsInitialSupplier(Supplier<WebsocketEvent> initialSupplier) {
         this.initialSuppliers.add(initialSupplier);
     }
 
-    public void send(@NotNull WebsocketAction action) {
-        String jsonEncoded = jsonEncode(action);
-        sendMessage(jsonEncoded);
-    }
 
-    private String jsonEncode(@NotNull WebsocketAction action) {
+    private String jsonEncode(@NotNull WebsocketEvent action) {
         JSONObject jsonObject = new JSONObject(action);
-        jsonObject.put("event", action.getEvent());
+        jsonObject.put("type", action.getType());
         jsonObject.put("payload", action.getPayload());
         String myJson = jsonObject.toString();
-        System.out.println(myJson);
         return myJson;
     }
 
-    private void sendMessage(String jsonEventAndPayload) {
-        sessions.stream().forEach(s -> s.send(jsonEventAndPayload));
+    private void send(WsSession s, @NotNull WebsocketEvent action) {
+        String jsonEncoded = jsonEncode(action);
+        send(s, jsonEncoded);
+    }
+
+    public void broadcast(@NotNull WebsocketEvent action) {
+        String jsonEncoded = jsonEncode(action);
+        broadcast(jsonEncoded);
+    }
+
+    private void broadcast(String jsonEventAndPayload) {
+        sessions.stream().forEach(s -> send(s, jsonEventAndPayload));
+    }
+
+    private void send(WsSession s, String jsonEventAndPayload) {
+        try {
+            System.out.println("SENDING: " + jsonEventAndPayload);
+            s.send(jsonEventAndPayload);
+        } catch (Exception e) {
+            log.info("Cannot send", e);
+        }
     }
 }

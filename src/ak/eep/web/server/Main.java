@@ -4,10 +4,11 @@ import ak.eep.web.server.io.CommandWriter;
 import ak.eep.web.server.io.DirectoryWatcher;
 import ak.eep.web.server.io.FileContentReader;
 import ak.eep.web.server.io.LogFileWatcher;
-import ak.eep.web.server.log.LogLinesAddedAction;
-import ak.eep.web.server.log.LogClearedAction;
+import ak.eep.web.server.log.LogLinesAddedEvent;
+import ak.eep.web.server.log.LogClearedEvent;
 import ak.eep.web.server.jsondata.JsonContentProvider;
 import ak.eep.web.server.server.Server;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,18 +122,24 @@ public class Main {
         directoryWatcher.addFileConsumer(logInFilePath, logFileWatcher);
         logFileWatcher.addLogLineConsumer((logLines, reset) -> {
             if (reset) {
-                server.send(new LogClearedAction());
+                server.broadcast(new LogClearedEvent());
             }
-            server.send(new LogLinesAddedAction(logLines));
+            server.broadcast(new LogLinesAddedEvent(logLines));
         });
-        server.addWsInitialSupplier(() -> new LogLinesAddedAction(logFileWatcher.getAllCurrentLogLines()));
+        server.addWsInitialSupplier(() -> new LogLinesAddedEvent(logFileWatcher.getAllCurrentLogLines()));
     }
 
     private void connectCommandWriter(Server server) {
         final CommandWriter commandWriter = new CommandWriter(commandOutFilePath);
         server.addWsActionConsumer((session, message) -> {
             System.out.println("Received: " + message);
-            commandWriter.writeCommand(message);
+
+            JSONObject o = new JSONObject(message);
+            if (null == o.get("type")) {
+                System.out.println("NO type IN MESSAGE: " + o.toString());
+            } else if ("eepcommand".equalsIgnoreCase(o.get("type").toString())) {
+                commandWriter.writeCommand(o.get("payload").toString());
+            }
         });
     }
 

@@ -52,7 +52,7 @@ public class LogFileWatcher implements Consumer<DirectoryWatcher.Change> {
                 }
                 if (i > 0) {
                     System.out.println(change + " --- Sending " + i + " lines at once.");
-                    lines.delete(lines.length() - 1, lines.length());
+                    //lines.delete(lines.length() - 1, lines.length());
                     newLines = lines.toString();
                 }
                 lastPosition = inputFile.getFilePointer();
@@ -73,7 +73,7 @@ public class LogFileWatcher implements Consumer<DirectoryWatcher.Change> {
     public String getAllCurrentLogLines() {
         StringBuilder lines = new StringBuilder();
         try {
-            RandomAccessFile inputFile = new RandomAccessFile(logFile.toFile(), "r");
+            RandomAccessFile inputFile = new RandomAccessFile(logFile.toFile(), "rw");
             String newLine;
             while ((newLine = inputFile.readLine()) != null) {
                 lines.append(newLine);

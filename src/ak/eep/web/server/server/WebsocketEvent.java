@@ -2,17 +2,17 @@ package ak.eep.web.server.server;
 
 import ak.eep.web.server.log.LogEventType;
 
-public class WebsocketAction {
-    private String event;
+public class WebsocketEvent {
+    private String type;
     private final Object payload;
 
-    public WebsocketAction(LogEventType event, Object payload) {
-        this.event = event.getStringValue();
+    public WebsocketEvent(LogEventType type, Object payload) {
+        this.type = type.getStringValue();
         this.payload = payload;
     }
 
-    public String getEvent() {
-        return this.event;
+    public String getType() {
+        return this.type;
     }
 
     public Object getPayload() {
