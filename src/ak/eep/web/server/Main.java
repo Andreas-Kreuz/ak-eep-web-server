@@ -4,9 +4,9 @@ import ak.eep.web.server.io.CommandWriter;
 import ak.eep.web.server.io.DirectoryWatcher;
 import ak.eep.web.server.io.FileContentReader;
 import ak.eep.web.server.io.LogFileWatcher;
-import ak.eep.web.server.log.LogLinesAddedEvent;
-import ak.eep.web.server.log.LogClearedEvent;
 import ak.eep.web.server.jsondata.JsonContentProvider;
+import ak.eep.web.server.log.LogClearedEvent;
+import ak.eep.web.server.log.LogLinesAddedEvent;
 import ak.eep.web.server.server.Server;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -147,9 +147,15 @@ public class Main {
         final JsonContentProvider jsonContentProvider = new JsonContentProvider(server);
         updateJsonData(jsonContentProvider);
 
-        directoryWatcher.addFileConsumer(luaReadyFilePath, (change) -> {
+        directoryWatcher.addFileConsumer(luaReadyFilePath, (path, change) -> {
             if (change == DirectoryWatcher.Change.CREATED
                     || change == DirectoryWatcher.Change.MODIFIED) {
+                if (!luaReadyFilePath.getFileName().equals(path.getFileName())) {
+                    System.out.println("NOT MATCHING: \n"
+                            + luaReadyFilePath.toFile().getAbsolutePath() + "\n"
+                            + path.toFile().getAbsolutePath());
+                }
+
                 updateJsonData(jsonContentProvider);
                 //noinspection ResultOfMethodCallIgnored
                 luaReadyFilePath.toFile().delete();

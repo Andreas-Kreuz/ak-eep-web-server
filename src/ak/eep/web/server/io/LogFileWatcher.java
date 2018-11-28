@@ -10,12 +10,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * Read log file and remember last known position.
  */
-public class LogFileWatcher implements Consumer<DirectoryWatcher.Change> {
+public class LogFileWatcher implements BiConsumer<Path, DirectoryWatcher.Change> {
     private static Logger log = LoggerFactory.getLogger(LogFileWatcher.class);
 
     private final Path logFile;
@@ -27,13 +26,19 @@ public class LogFileWatcher implements Consumer<DirectoryWatcher.Change> {
     }
 
     @Override
-    public void accept(DirectoryWatcher.Change change) {
+    public void accept(Path path, DirectoryWatcher.Change change) {
+        if (!logFile.getFileName().equals(path.getFileName())) {
+            System.out.println("NOT MATCHING: \n"
+                    + logFile.toFile().getAbsolutePath() + "\n"
+                    + path.toFile().getAbsolutePath());
+        }
+
         try {
             String newLines = "";
             boolean reset = false;
 
             if (change == DirectoryWatcher.Change.CREATED
-                || (change == DirectoryWatcher.Change.MODIFIED && Files.size(logFile) < lastPosition)) {
+                    || (change == DirectoryWatcher.Change.MODIFIED && Files.size(logFile) < lastPosition)) {
                 System.out.println("LOG CLEARED: " + logFile.toFile());
                 lastPosition = 0L;
                 reset = true;

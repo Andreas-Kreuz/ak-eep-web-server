@@ -9,18 +9,19 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * Watch directory for file changes.
  */
 public class DirectoryWatcher {
     private static Logger log = LoggerFactory.getLogger(DirectoryWatcher.class);
-    private final Map<String, Consumer<Change>> fileConsumers;
+    private final Map<String, BiConsumer<Path, Change>> fileConsumers;
     private final WatchService watchService;
 
     public DirectoryWatcher(Path directory) throws IOException {
         this.fileConsumers = new ConcurrentHashMap<>();
+        System.out.println("Listening for changes in: " + directory);
         this.watchService = FileSystems.getDefault().newWatchService();
         directory.register(this.watchService,
                 StandardWatchEventKinds.ENTRY_CREATE,
@@ -29,7 +30,7 @@ public class DirectoryWatcher {
                 StandardWatchEventKinds.OVERFLOW);
     }
 
-    public void addFileConsumer(Path path, Consumer<Change> fileConsumer) {
+    public void addFileConsumer(Path path, BiConsumer<Path, Change> fileConsumer) {
         String fileName = path.getFileName().toString();
         this.fileConsumers.putIfAbsent(fileName, fileConsumer);
     }
@@ -46,10 +47,11 @@ public class DirectoryWatcher {
                     log.debug(simpleDateFormat.format(new Date()) + ": File: " + event.context() + " (" + event.kind() + ").");
                     final Change change = getChange(event.kind());
                     if (event.context() instanceof Path) {
-                        String fileName = ((Path) event.context()).getFileName().toString();
-                        Consumer<Change> consumer = fileConsumers.getOrDefault(fileName, null);
+                        Path path = (Path) event.context();
+                        String fileName = path.getFileName().toString();
+                        BiConsumer<Path, Change> consumer = fileConsumers.getOrDefault(fileName, null);
                         if (consumer != null) {
-                            consumer.accept(change);
+                            consumer.accept(path, change);
                         }
                     }
                 }
