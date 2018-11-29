@@ -3,13 +3,9 @@ package ak.eep.web.server.server;
 import io.javalin.Javalin;
 import io.javalin.staticfiles.Location;
 import io.javalin.websocket.WsSession;
-import org.jetbrains.annotations.NotNull;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.BiConsumer;
@@ -19,9 +15,7 @@ public class Server {
     private static Logger log = LoggerFactory.getLogger(Server.class);
     private final Javalin app;
     private SortedSet<String> urls = new TreeSet<>();
-    private List<Supplier<WebsocketEvent>> initialSuppliers = new ArrayList<>();
-    private List<BiConsumer<WsSession, String>> websocketConsumers = new ArrayList<>();
-    private List<WsSession> sessions = new ArrayList<>();
+    private final WebsocketHandler websocketHandler = new WebsocketHandler();
 
     public Server(boolean testMode) {
         app = Javalin.create();
@@ -34,24 +28,10 @@ public class Server {
             app.enableCorsForAllOrigins();
         }
         app.ws("/ws", ws -> {
-            ws.onConnect(session -> {
-                log.info("Websocket Connected");
-                sessions.add(session);
-                for (Supplier<WebsocketEvent> actionSupplier : initialSuppliers) {
-                    send(session, actionSupplier.get());
-                }
-            });
-            ws.onMessage((session, message) -> {
-                websocketConsumers.stream().forEach(c -> c.accept(session, message));
-            });
-            ws.onClose((session, statusCode, reason) -> {
-                log.info("Websocket Closed: " + statusCode + " " + reason);
-                sessions.remove(session);
-            });
-            ws.onError((session, throwable) -> {
-                log.info("Websocket Errored", throwable);
-                sessions.remove(session);
-            });
+            ws.onConnect(websocketHandler::onConnect);
+            ws.onMessage(websocketHandler::onMessage);
+            ws.onClose(websocketHandler::onClose);
+            ws.onError(websocketHandler::onError);
         });
     }
 
@@ -82,43 +62,7 @@ public class Server {
         return urls.contains(url);
     }
 
-    public void addWsActionConsumer(BiConsumer<WsSession, String> onMessageConsumer) {
-        this.websocketConsumers.add(onMessageConsumer);
-    }
-
-    public void addWsInitialSupplier(Supplier<WebsocketEvent> initialSupplier) {
-        this.initialSuppliers.add(initialSupplier);
-    }
-
-
-    private String jsonEncode(@NotNull WebsocketEvent action) {
-        JSONObject jsonObject = new JSONObject(action);
-        jsonObject.put("type", action.getType());
-        jsonObject.put("payload", action.getPayload());
-        String myJson = jsonObject.toString();
-        return myJson;
-    }
-
-    private void send(WsSession s, @NotNull WebsocketEvent action) {
-        String jsonEncoded = jsonEncode(action);
-        send(s, jsonEncoded);
-    }
-
-    public void broadcast(@NotNull WebsocketEvent action) {
-        String jsonEncoded = jsonEncode(action);
-        broadcast(jsonEncoded);
-    }
-
-    private void broadcast(String jsonEventAndPayload) {
-        sessions.stream().forEach(s -> send(s, jsonEventAndPayload));
-    }
-
-    private void send(WsSession s, String jsonEventAndPayload) {
-        try {
-            System.out.println("SENDING: " + jsonEventAndPayload);
-            s.send(jsonEventAndPayload);
-        } catch (Exception e) {
-            log.info("Cannot send", e);
-        }
+    public WebsocketHandler getWebsocketHandler() {
+        return websocketHandler;
     }
 }

@@ -5,6 +5,6 @@ import ak.eep.web.server.server.WebsocketEvent;
 public class LogClearedEvent extends WebsocketEvent {
 
     public LogClearedEvent() {
-        super(LogEventType.LOG_CLEAR_MESSAGES, "");
+        super(LogEventType.LOG_CLEAR_MESSAGES.getStringValue(), "");
     }
 }

@@ -1,13 +1,11 @@
 package ak.eep.web.server.server;
 
-import ak.eep.web.server.log.LogEventType;
-
 public class WebsocketEvent {
     private String type;
-    private final Object payload;
+    private String payload;
 
-    public WebsocketEvent(LogEventType type, Object payload) {
-        this.type = type.getStringValue();
+    public WebsocketEvent(String type, String payload) {
+        this.type = type;
         this.payload = payload;
     }
 
@@ -15,7 +13,15 @@ public class WebsocketEvent {
         return this.type;
     }
 
-    public Object getPayload() {
+    public String getPayload() {
         return payload;
+    }
+
+    @Override
+    public String toString() {
+        return "WebsocketEvent{" +
+                "type='" + type + '\'' +
+                ", payload='" + payload + '\'' +
+                '}';
     }
 }

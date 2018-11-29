@@ -7,8 +7,8 @@ import ak.eep.web.server.io.LogFileWatcher;
 import ak.eep.web.server.jsondata.JsonContentProvider;
 import ak.eep.web.server.log.LogClearedEvent;
 import ak.eep.web.server.log.LogLinesAddedEvent;
+import ak.eep.web.server.server.Room;
 import ak.eep.web.server.server.Server;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,24 +122,24 @@ public class Main {
         directoryWatcher.addFileConsumer(logInFilePath, logFileWatcher);
         logFileWatcher.addLogLineConsumer((logLines, reset) -> {
             if (reset) {
-                server.broadcast(new LogClearedEvent());
+                server.getWebsocketHandler().broadcast(
+                        Room.LOG,
+                        new LogClearedEvent());
             }
-            server.broadcast(new LogLinesAddedEvent(logLines));
+            server.getWebsocketHandler().broadcast(
+                    Room.LOG,
+                    new LogLinesAddedEvent(logLines));
         });
-        server.addWsInitialSupplier(() -> new LogLinesAddedEvent(logFileWatcher.getAllCurrentLogLines()));
+        server.getWebsocketHandler().addOnJoinSupplier(
+                Room.LOG,
+                () -> new LogLinesAddedEvent(logFileWatcher.getAllCurrentLogLines()));
     }
 
     private void connectCommandWriter(Server server) {
         final CommandWriter commandWriter = new CommandWriter(commandOutFilePath);
-        server.addWsActionConsumer((session, message) -> {
-            System.out.println("Received: " + message);
-
-            JSONObject o = new JSONObject(message);
-            if (null == o.get("type")) {
-                System.out.println("NO type IN MESSAGE: " + o.toString());
-            } else if ("eepcommand".equalsIgnoreCase(o.get("type").toString())) {
-                commandWriter.writeCommand(o.get("payload").toString());
-            }
+        server.getWebsocketHandler().addMessageConsumer(Room.EEP_COMMAND, (websocketEvent) -> {
+            System.out.println("Executing: " + websocketEvent);
+            commandWriter.writeCommand(websocketEvent.getPayload());
         });
     }
 
