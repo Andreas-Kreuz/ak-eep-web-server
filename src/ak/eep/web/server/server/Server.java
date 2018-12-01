@@ -2,13 +2,11 @@ package ak.eep.web.server.server;
 
 import io.javalin.Javalin;
 import io.javalin.staticfiles.Location;
-import io.javalin.websocket.WsSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public class Server {
