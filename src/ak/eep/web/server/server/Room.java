@@ -1,10 +1,11 @@
 package ak.eep.web.server.server;
 
 public enum Room {
-    ROOM("[Room]"),
+    EEP_COMMAND("[EEPCommand]"),
     LOG("[Log]"),
-    URLS("[URLs]"),
-    EEP_COMMAND("[EEPCommand]");
+    PING("[Ping]"),
+    ROOM("[Room]"),
+    URLS("[URLs]");
 
     private final String stringValue;
 

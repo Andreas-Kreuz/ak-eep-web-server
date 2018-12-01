@@ -6,31 +6,35 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 
 public class WebsocketHandler {
-    private static Logger log = LoggerFactory.getLogger(WebsocketHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(WebsocketHandler.class);
 
-    private Map<Room, List<Supplier<WebsocketEvent>>> roomInitialSuppliers = new TreeMap<>();
-    private Map<Room, List<Consumer<WebsocketEvent>>> remoteMessageConsumers = new TreeMap<>();
-    private Map<Room, List<WsSession>> roomSessions = new TreeMap<>();
-    private List<WsSession> sessions = new ArrayList<>();
+    private final Map<Room, List<Supplier<WebsocketEvent>>> onJoinRoomSuppliers = new TreeMap<>();
+    private final Map<Room, List<Consumer<WebsocketEvent>>> onMessageConsumers = new TreeMap<>();
+    private final Map<Room, List<WsSession>> roomSessions = new TreeMap<>();
+    private final List<WsSession> sessions = new ArrayList<>();
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private Timer timer = null;
 
     public WebsocketHandler() {
+        addOnMessageConsumer(Room.PING, e -> System.out.println("RECEIVED: " + e.getPayload() + "/" + sdf.format(new Date())));
     }
 
 
-    public void addMessageConsumer(Room room, Consumer<WebsocketEvent> onMessageConsumer) {
-        List<Consumer<WebsocketEvent>> list = this.remoteMessageConsumers
+    public void addOnMessageConsumer(Room room, Consumer<WebsocketEvent> onMessageConsumer) {
+        List<Consumer<WebsocketEvent>> list = this.onMessageConsumers
                 .computeIfAbsent(room, (r) -> new ArrayList<>());
         list.add(onMessageConsumer);
     }
 
-    public void addOnJoinSupplier(Room room, Supplier<WebsocketEvent> initialSupplier) {
-        List<Supplier<WebsocketEvent>> list = this.roomInitialSuppliers
+    public void addOnJoinRoomSupplier(Room room, Supplier<WebsocketEvent> initialSupplier) {
+        List<Supplier<WebsocketEvent>> list = this.onJoinRoomSuppliers
                 .computeIfAbsent(room, (r) -> new ArrayList<>());
         list.add(initialSupplier);
     }
@@ -49,7 +53,7 @@ public class WebsocketHandler {
             }
 
             List<Consumer<WebsocketEvent>> consumers
-                    = remoteMessageConsumers.getOrDefault(room, Collections.emptyList());
+                    = onMessageConsumers.getOrDefault(room, Collections.emptyList());
             consumers.forEach(c -> c.accept(websocketEvent));
         }
     }
@@ -61,29 +65,24 @@ public class WebsocketHandler {
         }
 
         if (RoomEvent.SUBSCRIBE.getStringValue().equals(websocketEvent.getType())) {
-            System.out.println(session + " joined " + room);
-            List<WsSession> list = this.roomSessions
-                    .computeIfAbsent(room, (r) -> new ArrayList<>());
-            list.add(session);
-            List<Supplier<WebsocketEvent>> initialSuppliers = this.roomInitialSuppliers
-                    .computeIfAbsent(room, (r) -> new ArrayList<>());
-            initialSuppliers.forEach(s -> send(session, s.get()));
+            joinRoom(session, room);
         } else if (RoomEvent.UNSUBSCRIBE.getStringValue().equals(websocketEvent.getType())) {
-            System.out.println(session + " left " + room);
-            List<WsSession> list = this.roomSessions.get(room);
-            if (list != null) {
-                list.remove(session);
-            }
+            leaveRoom(session, room);
         }
     }
 
     void onClose(WsSession session, int statusCode, String reason) {
         log.info("Websocket Closed: " + statusCode + " " + reason);
-        sessions.remove(session);
+        removeSession(session);
     }
 
     void onError(WsSession session, Throwable throwable) {
         log.info("Websocket Errored", throwable);
+        removeSession(session);
+    }
+
+    private void removeSession(WsSession session) {
+        Arrays.stream(Room.values()).forEach(room -> leaveRoom(session, room));
         sessions.remove(session);
     }
 
@@ -128,6 +127,70 @@ public class WebsocketHandler {
             s.send(jsonEventAndPayload);
         } catch (Exception e) {
             log.info("Cannot send", e);
+        }
+    }
+
+
+    private void joinRoom(WsSession session, Room room) {
+        synchronized (roomSessions) {
+            List<WsSession> list = this.roomSessions
+                    .computeIfAbsent(room, (r) -> new ArrayList<>());
+            list.add(session);
+            System.out.println(session + " joined room: " + room);
+        }
+
+        List<Supplier<WebsocketEvent>> initialSuppliers = this.onJoinRoomSuppliers
+                .computeIfAbsent(room, (r) -> new ArrayList<>());
+        initialSuppliers.forEach(s -> send(session, s.get()));
+
+        if (room == Room.PING) {
+            startTimerIfRequired();
+        }
+    }
+
+    private void leaveRoom(WsSession session, Room room) {
+        synchronized (roomSessions) {
+            List<WsSession> list = this.roomSessions.get(room);
+            if (list != null) {
+                if (list.remove(session)) {
+                    System.out.println(session + " left " + room);
+                }
+            }
+        }
+
+        if (room == Room.PING) {
+            stopTimerIfRequired();
+        }
+    }
+
+    private void startTimerIfRequired() {
+        synchronized (roomSessions) {
+            if (roomSessions.get(Room.PING) != null
+                    && !roomSessions.get(Room.PING).isEmpty()
+                    && timer == null) {
+                timer = new Timer(true);
+                timer.scheduleAtFixedRate(new TimerTask() {
+                    @Override
+                    public void run() {
+                        broadcast(Room.PING, new WebsocketEvent(
+                                Room.PING.getStringValue(),
+                                sdf.format(new Date())));
+                    }
+                }, 1000, 5000);
+                System.out.println("Ping service started");
+            }
+        }
+    }
+
+    private void stopTimerIfRequired() {
+        synchronized (roomSessions) {
+            if (roomSessions.get(Room.PING) != null
+                    && roomSessions.get(Room.PING).size() == 0
+                    && timer != null) {
+                timer.cancel();
+                timer = null;
+                System.out.println("Ping service stopped");
+            }
         }
     }
 }

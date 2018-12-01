@@ -130,14 +130,14 @@ public class Main {
                     Room.LOG,
                     new LogLinesAddedEvent(logLines));
         });
-        server.getWebsocketHandler().addOnJoinSupplier(
+        server.getWebsocketHandler().addOnJoinRoomSupplier(
                 Room.LOG,
                 () -> new LogLinesAddedEvent(logFileWatcher.getAllCurrentLogLines()));
     }
 
     private void connectCommandWriter(Server server) {
         final CommandWriter commandWriter = new CommandWriter(commandOutFilePath);
-        server.getWebsocketHandler().addMessageConsumer(Room.EEP_COMMAND, (websocketEvent) -> {
+        server.getWebsocketHandler().addOnMessageConsumer(Room.EEP_COMMAND, (websocketEvent) -> {
             System.out.println("Executing: " + websocketEvent);
             commandWriter.writeCommand(websocketEvent.getPayload());
         });

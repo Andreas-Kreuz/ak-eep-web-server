@@ -23,10 +23,15 @@ public class JsonContentProvider {
 
     public void updateInput(String json) {
         JSONObject object = new JSONObject(json);
-        log.info("Found URLs: " + object.keySet());
+        log.debug("Found URLs: " + object.keySet());
         for (String key : object.keySet()) {
             String url = "/api/v1/" + key;
             String jsonForUrl = object.get(key).toString();
+
+            String lastJsonForUrl = urlsToContent.get(url);
+            if (!jsonForUrl.equals(lastJsonForUrl)) {
+                log.info("URL content changed: " + url);
+            }
 
             urlsToContent.put(url, jsonForUrl);
             if (!server.urlUsed(url)) {
