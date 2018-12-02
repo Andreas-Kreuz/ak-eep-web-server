@@ -17,7 +17,7 @@ public class WebsocketHandler {
 
     private final Map<String, List<Supplier<WebsocketEvent>>> onJoinRoomSuppliers = new TreeMap<>();
     private final Map<String, List<Consumer<WebsocketEvent>>> onRoomMsgConsumers = new TreeMap<>();
-    private final Map<String, List<WsSession>> roomSessions = new TreeMap<>();
+    private final Map<String, Set<WsSession>> roomSessions = new TreeMap<>();
     private final List<WsSession> sessions = new ArrayList<>();
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     private Timer timer = null;
@@ -39,6 +39,12 @@ public class WebsocketHandler {
         List<Supplier<WebsocketEvent>> list = this.onJoinRoomSuppliers
                 .computeIfAbsent(room, (r) -> new ArrayList<>());
         list.add(initialSupplier);
+        System.out.println("Added Initial Supplier for: " + room + "");
+    }
+
+    public void removeRoom(String room) {
+        this.onJoinRoomSuppliers.remove(room);
+        this.onRoomMsgConsumers.remove(room);
     }
 
     void onConnect(WsSession session) {
@@ -118,7 +124,7 @@ public class WebsocketHandler {
 
     private void broadcast(String room, String jsonEventAndPayload) {
         roomSessions
-                .getOrDefault(room, Collections.emptyList())
+                .getOrDefault(room, Collections.emptySet())
                 .forEach(s -> send(s, jsonEventAndPayload));
     }
 
@@ -133,26 +139,27 @@ public class WebsocketHandler {
 
     private void joinRoom(WsSession session, String room) {
         synchronized (roomSessions) {
-            List<WsSession> list = this.roomSessions
-                    .computeIfAbsent(room, (r) -> new ArrayList<>());
-            list.add(session);
-            System.out.println(room + " joined by " + session.getId());
-        }
+            Set<WsSession> set = this.roomSessions
+                    .computeIfAbsent(room, (r) -> new HashSet<>());
+            if (set.add(session)) {
+                System.out.println(room + " joined by " + session.getId());
 
-        List<Supplier<WebsocketEvent>> initialSuppliers = this.onJoinRoomSuppliers
-                .computeIfAbsent(room, (r) -> new ArrayList<>());
-        initialSuppliers.forEach(s -> send(session, s.get()));
+                List<Supplier<WebsocketEvent>> initialSuppliers = this.onJoinRoomSuppliers
+                        .computeIfAbsent(room, (r) -> new ArrayList<>());
+                initialSuppliers.forEach(s -> send(session, s.get()));
 
-        if (Room.PING.equals(room)) {
-            startPingTimerIfRequired();
+                if (Room.PING.equals(room)) {
+                    startPingTimerIfRequired();
+                }
+            }
         }
     }
 
     private void leaveRoom(WsSession session, String room) {
         synchronized (roomSessions) {
-            List<WsSession> list = this.roomSessions.get(room);
-            if (list != null) {
-                if (list.remove(session)) {
+            Set<WsSession> set = this.roomSessions.get(room);
+            if (set != null) {
+                if (set.remove(session)) {
                     System.out.println(room + " left by " + session.getId());
                 }
             }

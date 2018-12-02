@@ -10,6 +10,7 @@ import ak.eep.web.server.log.LogClearedEvent;
 import ak.eep.web.server.log.LogLinesAddedEvent;
 import ak.eep.web.server.server.Room;
 import ak.eep.web.server.server.Server;
+import ak.eep.web.server.server.WebsocketEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,6 +146,8 @@ public class Main {
 
     private void connectJsonContentProvider(Server server) {
         final JsonContentProvider jsonContentProvider = new JsonContentProvider(server);
+        jsonContentProvider.roomAdded((room, initialProvider) -> server.getWebsocketHandler().addOnJoinRoomSupplier(room, initialProvider));
+        jsonContentProvider.roomRemoved((room) -> server.getWebsocketHandler().removeRoom(room));
         updateJsonData(jsonContentProvider);
 
         directoryWatcher.addFileConsumer(luaReadyFilePath, (path, change) -> {
@@ -164,6 +167,7 @@ public class Main {
         server.getWebsocketHandler().addOnJoinRoomSupplier(
                 Room.AVAILABLE_DATA_TYPES,
                 () -> new AvailableDataTypesChangedEvent(jsonContentProvider.getAllCurrentDataTypes()));
+
     }
 
     private void updateJsonData(JsonContentProvider jsonContentProvider) {

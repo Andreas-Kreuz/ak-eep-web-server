@@ -15,6 +15,13 @@ public class Room {
     public static String ofDataType(String dataType) {
         return "[Data-" + dataType + "]";
     }
+
+    public static String dataTypeOf(String room) {
+        if (room.startsWith("[Data-") && room.endsWith("]")) {
+            return room.substring(6, room.length() - 1);
+        }
+        throw new IllegalStateException("No data room: " + room);
+    }
 //    public enum Type {
 //        EEP_COMMAND("[EEPCommand]"),
 //        LOG("[Log]"),
