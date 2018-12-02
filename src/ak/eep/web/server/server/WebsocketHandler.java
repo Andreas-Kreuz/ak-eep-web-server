@@ -15,155 +15,155 @@ import java.util.function.Supplier;
 public class WebsocketHandler {
     private static final Logger log = LoggerFactory.getLogger(WebsocketHandler.class);
 
-    private final Map<Room, List<Supplier<WebsocketEvent>>> onJoinRoomSuppliers = new TreeMap<>();
-    private final Map<Room, List<Consumer<WebsocketEvent>>> onMessageConsumers = new TreeMap<>();
-    private final Map<Room, List<WsSession>> roomSessions = new TreeMap<>();
+    private final Map<String, List<Supplier<WebsocketEvent>>> onJoinRoomSuppliers = new TreeMap<>();
+    private final Map<String, List<Consumer<WebsocketEvent>>> onRoomMsgConsumers = new TreeMap<>();
+    private final Map<String, List<WsSession>> roomSessions = new TreeMap<>();
     private final List<WsSession> sessions = new ArrayList<>();
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     private Timer timer = null;
 
     public WebsocketHandler() {
-        addOnMessageConsumer(Room.PING, e -> System.out.println("RECEIVED: " + e.getPayload() + "/" + sdf.format(new Date())));
+//        addOnMessageConsumer(
+//                Room.PING,
+//                e -> System.out.println("RECEIVED: " + e.getPayload() + " / " + sdf.format(new Date())));
     }
 
 
-    public void addOnMessageConsumer(Room room, Consumer<WebsocketEvent> onMessageConsumer) {
-        List<Consumer<WebsocketEvent>> list = this.onMessageConsumers
+    public void addOnMessageConsumer(String room, Consumer<WebsocketEvent> onMessageConsumer) {
+        List<Consumer<WebsocketEvent>> list = this.onRoomMsgConsumers
                 .computeIfAbsent(room, (r) -> new ArrayList<>());
         list.add(onMessageConsumer);
     }
 
-    public void addOnJoinRoomSupplier(Room room, Supplier<WebsocketEvent> initialSupplier) {
+    public void addOnJoinRoomSupplier(String room, Supplier<WebsocketEvent> initialSupplier) {
         List<Supplier<WebsocketEvent>> list = this.onJoinRoomSuppliers
                 .computeIfAbsent(room, (r) -> new ArrayList<>());
         list.add(initialSupplier);
     }
 
     void onConnect(WsSession session) {
-        log.info("Websocket Connected");
         sessions.add(session);
+        log.info("Session connected: " + session.getId());
     }
 
     void onMessage(WsSession session, String message) {
-        WebsocketEvent websocketEvent = decodeJson(message);
-        Room room = Room.of(websocketEvent);
-        if (room != null) {
-            if (room == Room.ROOM) {
-                computeRoomMessage(session, websocketEvent);
-            }
-
-            List<Consumer<WebsocketEvent>> consumers
-                    = onMessageConsumers.getOrDefault(room, Collections.emptyList());
-            consumers.forEach(c -> c.accept(websocketEvent));
-        }
+        WebsocketEvent event = decodeJson(message);
+        log.info("INCOMING SOCKET: " + event.getRoom() + " " + event.getAction() + " from " + session.getId());
+        computeRoomMessage(session, event);
+        List<Consumer<WebsocketEvent>> consumers
+                = onRoomMsgConsumers.getOrDefault(event.getRoom(), Collections.emptyList());
+        consumers.forEach(c -> c.accept(event));
     }
 
     private void computeRoomMessage(WsSession session, WebsocketEvent websocketEvent) {
-        Room room = Room.of(websocketEvent.getPayload());
-        if (room == null) {
-            System.out.println("Cannot join or leave room: " + websocketEvent.getPayload());
-        }
-
-        if (RoomEvent.SUBSCRIBE.getStringValue().equals(websocketEvent.getType())) {
-            joinRoom(session, room);
-        } else if (RoomEvent.UNSUBSCRIBE.getStringValue().equals(websocketEvent.getType())) {
-            leaveRoom(session, room);
+        if (Room.ROOM.equals(websocketEvent.getRoom())) {
+            String changedRoom = websocketEvent.getPayload();
+            if (RoomSubscriptionAction.SUBSCRIBE.action().equals(websocketEvent.getAction())) {
+                joinRoom(session, changedRoom);
+            } else if (RoomSubscriptionAction.UNSUBSCRIBE.action().equals(websocketEvent.getAction())) {
+                leaveRoom(session, changedRoom);
+            }
         }
     }
 
     void onClose(WsSession session, int statusCode, String reason) {
-        log.info("Websocket Closed: " + statusCode + " " + reason);
+        log.info("Websocket Closed: " + statusCode + " " + reason + " " + session.getId());
         removeSession(session);
     }
 
     void onError(WsSession session, Throwable throwable) {
-        log.info("Websocket Errored", throwable);
+        log.info("Websocket Errored" + session.getId(), throwable);
         removeSession(session);
     }
 
     private void removeSession(WsSession session) {
-        Arrays.stream(Room.values()).forEach(room -> leaveRoom(session, room));
+        roomSessions.forEach((room, wsSessions) -> leaveRoom(session, room));
         sessions.remove(session);
     }
 
     private WebsocketEvent decodeJson(@NotNull String jsonMessage) {
         JSONObject o = new JSONObject(jsonMessage);
-        if (null == o.get("type")) {
+        if (null == o.get("room")) {
             System.out.println("NO type IN MESSAGE: " + o.toString());
         }
-        String type = o.get("type").toString();
+        if (null == o.get("action")) {
+            System.out.println("NO action IN MESSAGE: " + o.toString());
+        }
+        String room = o.get("room").toString();
+        String action = o.get("action").toString();
         String payload = o.get("payload") == null ? null : o.get("payload").toString();
-        return new WebsocketEvent(type, payload);
+        return new WebsocketEvent(room, action, payload);
     }
 
 
     private String jsonEncode(@NotNull WebsocketEvent action) {
         JSONObject jsonObject = new JSONObject(action);
-        jsonObject.put("type", action.getType());
+        jsonObject.put("room", action.getRoom());
+        jsonObject.put("action", action.getAction());
         jsonObject.put("payload", action.getPayload());
-        String myJson = jsonObject.toString();
-        return myJson;
+        return jsonObject.toString();
     }
 
-    private void send(WsSession s, @NotNull WebsocketEvent action) {
-        String jsonEncoded = jsonEncode(action);
-        send(s, jsonEncoded);
+    private void send(WsSession session, @NotNull WebsocketEvent event) {
+        log.info("OUTBOUND SOCKET: " + event.getRoom() + " " + event.getAction() + " to " + session.getId());
+        String jsonEncoded = jsonEncode(event);
+        send(session, jsonEncoded);
     }
 
-    public void broadcast(Room room, @NotNull WebsocketEvent action) {
-        String jsonEncoded = jsonEncode(action);
-        broadcast(room, jsonEncoded);
+    public void broadcast(@NotNull WebsocketEvent event) {
+        log.info("OUTBOUND BROADCAST: " + event.getRoom() + " " + event.getAction() + " to all");
+        String jsonEncoded = jsonEncode(event);
+        broadcast(event.getRoom(), jsonEncoded);
     }
 
-    private void broadcast(Room room, String jsonEventAndPayload) {
+    private void broadcast(String room, String jsonEventAndPayload) {
         roomSessions
                 .getOrDefault(room, Collections.emptyList())
                 .forEach(s -> send(s, jsonEventAndPayload));
     }
 
-    private void send(WsSession s, String jsonEventAndPayload) {
+    private void send(WsSession session, String jsonEventAndPayload) {
         try {
-            System.out.println("SENDING: " + jsonEventAndPayload);
-            s.send(jsonEventAndPayload);
+            session.send(jsonEventAndPayload);
         } catch (Exception e) {
             log.info("Cannot send", e);
         }
     }
 
 
-    private void joinRoom(WsSession session, Room room) {
+    private void joinRoom(WsSession session, String room) {
         synchronized (roomSessions) {
             List<WsSession> list = this.roomSessions
                     .computeIfAbsent(room, (r) -> new ArrayList<>());
             list.add(session);
-            System.out.println(session + " joined room: " + room);
+            System.out.println(room + " joined by " + session.getId());
         }
 
         List<Supplier<WebsocketEvent>> initialSuppliers = this.onJoinRoomSuppliers
                 .computeIfAbsent(room, (r) -> new ArrayList<>());
         initialSuppliers.forEach(s -> send(session, s.get()));
 
-        if (room == Room.PING) {
-            startTimerIfRequired();
+        if (Room.PING.equals(room)) {
+            startPingTimerIfRequired();
         }
     }
 
-    private void leaveRoom(WsSession session, Room room) {
+    private void leaveRoom(WsSession session, String room) {
         synchronized (roomSessions) {
             List<WsSession> list = this.roomSessions.get(room);
             if (list != null) {
                 if (list.remove(session)) {
-                    System.out.println(session + " left " + room);
+                    System.out.println(room + " left by " + session.getId());
                 }
             }
         }
 
-        if (room == Room.PING) {
+        if (Room.PING.equals(room)) {
             stopTimerIfRequired();
         }
     }
 
-    private void startTimerIfRequired() {
+    private void startPingTimerIfRequired() {
         synchronized (roomSessions) {
             if (roomSessions.get(Room.PING) != null
                     && !roomSessions.get(Room.PING).isEmpty()
@@ -172,8 +172,9 @@ public class WebsocketHandler {
                 timer.scheduleAtFixedRate(new TimerTask() {
                     @Override
                     public void run() {
-                        broadcast(Room.PING, new WebsocketEvent(
-                                Room.PING.getStringValue(),
+                        broadcast(new WebsocketEvent(
+                                Room.PING,
+                                "Ping",
                                 sdf.format(new Date())));
                     }
                 }, 1000, 5000);
@@ -191,6 +192,12 @@ public class WebsocketHandler {
                 timer = null;
                 System.out.println("Ping service stopped");
             }
+        }
+    }
+
+    public void disconnect() {
+        for (WsSession session : sessions) {
+            session.close(0, "Server shutdown");
         }
     }
 }

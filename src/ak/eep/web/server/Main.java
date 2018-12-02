@@ -4,6 +4,7 @@ import ak.eep.web.server.io.CommandWriter;
 import ak.eep.web.server.io.DirectoryWatcher;
 import ak.eep.web.server.io.FileContentReader;
 import ak.eep.web.server.io.LogFileWatcher;
+import ak.eep.web.server.jsondata.AvailableDataTypesChangedEvent;
 import ak.eep.web.server.jsondata.JsonContentProvider;
 import ak.eep.web.server.log.LogClearedEvent;
 import ak.eep.web.server.log.LogLinesAddedEvent;
@@ -53,8 +54,6 @@ public class Main {
         //noinspection ResultOfMethodCallIgnored
         luaReadyFile.delete();
         luaReadyFile.deleteOnExit();
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> System.out.println("Exited correctly ...")));
     }
 
     public static void main(String[] args) throws IOException {
@@ -115,6 +114,11 @@ public class Main {
         connectCommandWriter(server);
         connectLogFileWatcher(server);
         server.startServer();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            server.getWebsocketHandler().disconnect();
+            System.out.println("Exited correctly ...");
+        }));
     }
 
     private void connectLogFileWatcher(Server server) {
@@ -122,13 +126,9 @@ public class Main {
         directoryWatcher.addFileConsumer(logInFilePath, logFileWatcher);
         logFileWatcher.addLogLineConsumer((logLines, reset) -> {
             if (reset) {
-                server.getWebsocketHandler().broadcast(
-                        Room.LOG,
-                        new LogClearedEvent());
+                server.getWebsocketHandler().broadcast(new LogClearedEvent());
             }
-            server.getWebsocketHandler().broadcast(
-                    Room.LOG,
-                    new LogLinesAddedEvent(logLines));
+            server.getWebsocketHandler().broadcast(new LogLinesAddedEvent(logLines));
         });
         server.getWebsocketHandler().addOnJoinRoomSupplier(
                 Room.LOG,
@@ -161,6 +161,9 @@ public class Main {
                 luaReadyFilePath.toFile().delete();
             }
         });
+        server.getWebsocketHandler().addOnJoinRoomSupplier(
+                Room.AVAILABLE_DATA_TYPES,
+                () -> new AvailableDataTypesChangedEvent(jsonContentProvider.getAllCurrentDataTypes()));
     }
 
     private void updateJsonData(JsonContentProvider jsonContentProvider) {

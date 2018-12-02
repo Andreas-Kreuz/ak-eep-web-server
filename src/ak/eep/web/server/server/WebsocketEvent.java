@@ -1,16 +1,22 @@
 package ak.eep.web.server.server;
 
 public class WebsocketEvent {
-    private String type;
+    private String room;
+    private String action;
     private String payload;
 
-    public WebsocketEvent(String type, String payload) {
-        this.type = type;
+    public WebsocketEvent(String room, String action, String payload) {
+        this.room = room;
+        this.action = action;
         this.payload = payload;
     }
 
-    public String getType() {
-        return this.type;
+    public String getRoom() {
+        return this.room;
+    }
+
+    public String getAction() {
+        return this.action;
     }
 
     public String getPayload() {
@@ -20,7 +26,8 @@ public class WebsocketEvent {
     @Override
     public String toString() {
         return "WebsocketEvent{" +
-                "type='" + type + '\'' +
+                "room='" + room + '\'' +
+                "action='" + action + '\'' +
                 ", payload='" + payload + '\'' +
                 '}';
     }
