@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/avatar-andreas-kreuz-128.png" alt="" width=72 height=72>
+  <img src="assets/img/eep-web-logo-shadow-72.png" alt="" width=72 height=72>
   <h3 align="center">EEP-Web-Server</h3>
   <p align="center">
-    Web-Anwendungsserver der Lua-Bibliothek für EEP.
+    Anwendungsserver der Lua-Bibliothek für EEP-Web.
   </p>
 </p>
 <br>
