@@ -24,7 +24,7 @@ public class CommandWriter {
             System.out.println("Writing: " + command);
             RandomAccessFile readWriteFileAccess = new RandomAccessFile(commandFile.toFile(), "rw");
             readWriteFileAccess.seek(readWriteFileAccess.length());
-            readWriteFileAccess.write((command + "\n").getBytes());
+            readWriteFileAccess.write((command + "\n").getBytes(EepDefaults.CHAR_SET));
             readWriteFileAccess.close();
         } catch (IOException e) {
             log.debug("Could not read " + commandFile, e);

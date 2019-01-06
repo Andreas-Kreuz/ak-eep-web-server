@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * Read file contents
@@ -22,6 +21,6 @@ public class FileContentReader {
     @NotNull
     public String readFileContentWin1252(Path file) throws IOException {
         byte[] encoded = Files.readAllBytes(file);
-        return new String(encoded, Charset.forName("windows-1252"));
+        return new String(encoded, EepDefaults.CHAR_SET);
     }
 }

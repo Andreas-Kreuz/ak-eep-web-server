@@ -1,6 +1,5 @@
 package ak.eep.web.server.log;
 
-import ak.eep.web.server.server.Room;
 import ak.eep.web.server.server.WebsocketEvent;
 
 public class LogLinesAddedEvent extends WebsocketEvent {
