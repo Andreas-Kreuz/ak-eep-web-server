@@ -23,9 +23,6 @@ public class WebsocketHandler {
     private Timer timer = null;
 
     public WebsocketHandler() {
-//        addOnMessageConsumer(
-//                Room.PING,
-//                e -> System.out.println("RECEIVED: " + e.getPayload() + " / " + sdf.format(new Date())));
     }
 
 
