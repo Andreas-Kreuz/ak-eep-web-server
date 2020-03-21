@@ -13,8 +13,8 @@
 Dieses Projekt enthält den Web-Anwendungsserver der Lua-Bibliothek für EEP.
 
 Mehr Informationen auf der Seite von EEP-Web:
-https://github.com/Andreas-Kreuz/ak-lua-bibliothek-fuer-eep
+<https://github.com/Andreas-Kreuz/ak-lua-bibliothek-fuer-eep>
 
 # Entwicklung
 
-https://github.com/Andreas-Kreuz/ak-eep-project
+<https://github.com/Andreas-Kreuz/ak-eep-project>
