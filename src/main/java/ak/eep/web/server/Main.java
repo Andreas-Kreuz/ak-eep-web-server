@@ -10,7 +10,6 @@ import ak.eep.web.server.log.LogClearedEvent;
 import ak.eep.web.server.log.LogLinesAddedEvent;
 import ak.eep.web.server.server.Room;
 import ak.eep.web.server.server.Server;
-import ak.eep.web.server.server.WebsocketEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
