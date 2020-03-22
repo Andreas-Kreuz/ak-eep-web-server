@@ -23,10 +23,8 @@ public class DirectoryWatcher {
         this.fileConsumers = new ConcurrentHashMap<>();
         System.out.println("Listening for changes in: " + directory);
         this.watchService = FileSystems.getDefault().newWatchService();
-        directory.register(this.watchService,
-                StandardWatchEventKinds.ENTRY_CREATE,
-                StandardWatchEventKinds.ENTRY_MODIFY,
-                StandardWatchEventKinds.ENTRY_DELETE,
+        directory.register(this.watchService, StandardWatchEventKinds.ENTRY_CREATE,
+                StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE,
                 StandardWatchEventKinds.OVERFLOW);
     }
 
@@ -44,7 +42,8 @@ public class DirectoryWatcher {
             WatchKey key;
             while ((key = watchService.take()) != null) {
                 for (WatchEvent<?> event : key.pollEvents()) {
-                    log.debug(simpleDateFormat.format(new Date()) + ": File: " + event.context() + " (" + event.kind() + ").");
+                    log.debug(simpleDateFormat.format(new Date()) + ": File: " + event.context() + " (" + event.kind()
+                            + ").");
                     final Change change = getChange(event.kind());
                     if (event.context() instanceof Path) {
                         Path path = (Path) event.context();
@@ -81,9 +80,6 @@ public class DirectoryWatcher {
     }
 
     public enum Change {
-        CREATED,
-        MODIFIED,
-        DELETED,
-        OVERFLOW
+        CREATED, MODIFIED, DELETED, OVERFLOW
     }
 }

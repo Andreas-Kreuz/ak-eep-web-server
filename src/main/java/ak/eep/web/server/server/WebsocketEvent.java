@@ -25,10 +25,7 @@ public class WebsocketEvent {
 
     @Override
     public String toString() {
-        return "WebsocketEvent{" +
-                "room='" + room + '\'' +
-                "action='" + action + '\'' +
-                ", payload='" + payload + '\'' +
-                '}';
+        return "WebsocketEvent{" + "room='" + room + '\'' + "action='" + action + '\'' + ", payload='" + payload + '\''
+                + '}';
     }
 }

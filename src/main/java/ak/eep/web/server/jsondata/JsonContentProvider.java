@@ -25,7 +25,6 @@ public class JsonContentProvider {
     private BiConsumer<String, Supplier<WebsocketEvent>> roomAddedConsumer = null;
     private Consumer<String> roomRemovedConsumer = null;
 
-
     public JsonContentProvider(Server server) {
         this.server = server;
     }
@@ -49,16 +48,14 @@ public class JsonContentProvider {
             final String room = Room.ofDataType(dataType);
             if (!jsonForUrl.equals(lastJsonForUrl)) {
                 log.info("URL content changed: " + url);
-                server.getWebsocketHandler().broadcast(
-                        new DataChangedEvent(room, jsonForUrl));
+                server.getWebsocketHandler().broadcast(new DataChangedEvent(room, jsonForUrl));
             }
         }
 
         if (dataTypesChanged) {
             JSONArray array = new JSONArray();
             currentDataTypes.forEach(s -> array.put(s));
-            server.getWebsocketHandler().broadcast(
-                    new AvailableDataTypesChangedEvent(array.toString()));
+            server.getWebsocketHandler().broadcast(new AvailableDataTypesChangedEvent(array.toString()));
         }
     }
 
@@ -66,8 +63,7 @@ public class JsonContentProvider {
         for (String dataType : dataTypes) {
             if (roomAddedConsumer != null && !currentDataTypes.contains(dataType)) {
                 final String room = Room.ofDataType(dataType);
-                roomAddedConsumer.accept(room,
-                        () -> new DataChangedEvent(room, dataTypesToContent.get(dataType)));
+                roomAddedConsumer.accept(room, () -> new DataChangedEvent(room, dataTypesToContent.get(dataType)));
             }
         }
 
@@ -78,7 +74,6 @@ public class JsonContentProvider {
                 dataTypesToContent.put(dataType, "");
             }
         }
-
 
         boolean changed = false;
         changed |= currentDataTypes.retainAll(dataTypes);

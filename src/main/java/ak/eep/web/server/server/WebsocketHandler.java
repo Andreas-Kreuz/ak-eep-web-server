@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-
 public class WebsocketHandler {
     private static final Logger log = LoggerFactory.getLogger(WebsocketHandler.class);
 
@@ -25,16 +24,13 @@ public class WebsocketHandler {
     public WebsocketHandler() {
     }
 
-
     public void addOnMessageConsumer(String room, Consumer<WebsocketEvent> onMessageConsumer) {
-        List<Consumer<WebsocketEvent>> list = this.onRoomMsgConsumers
-                .computeIfAbsent(room, (r) -> new ArrayList<>());
+        List<Consumer<WebsocketEvent>> list = this.onRoomMsgConsumers.computeIfAbsent(room, (r) -> new ArrayList<>());
         list.add(onMessageConsumer);
     }
 
     public void addOnJoinRoomSupplier(String room, Supplier<WebsocketEvent> initialSupplier) {
-        List<Supplier<WebsocketEvent>> list = this.onJoinRoomSuppliers
-                .computeIfAbsent(room, (r) -> new ArrayList<>());
+        List<Supplier<WebsocketEvent>> list = this.onJoinRoomSuppliers.computeIfAbsent(room, (r) -> new ArrayList<>());
         list.add(initialSupplier);
         System.out.println("Added Initial Supplier for: " + room + "");
     }
@@ -53,8 +49,8 @@ public class WebsocketHandler {
         WebsocketEvent event = decodeJson(message);
         log.info("INCOMING SOCKET: " + event.getRoom() + " " + event.getAction() + " from " + session.getId());
         computeRoomMessage(session, event);
-        List<Consumer<WebsocketEvent>> consumers
-                = onRoomMsgConsumers.getOrDefault(event.getRoom(), Collections.emptyList());
+        List<Consumer<WebsocketEvent>> consumers = onRoomMsgConsumers.getOrDefault(event.getRoom(),
+                Collections.emptyList());
         consumers.forEach(c -> c.accept(event));
     }
 
@@ -98,7 +94,6 @@ public class WebsocketHandler {
         return new WebsocketEvent(room, action, payload);
     }
 
-
     private String jsonEncode(@NotNull WebsocketEvent action) {
         JSONObject jsonObject = new JSONObject(action);
         jsonObject.put("room", action.getRoom());
@@ -120,9 +115,7 @@ public class WebsocketHandler {
     }
 
     private void broadcast(String room, String jsonEventAndPayload) {
-        roomSessions
-                .getOrDefault(room, Collections.emptySet())
-                .forEach(s -> send(s, jsonEventAndPayload));
+        roomSessions.getOrDefault(room, Collections.emptySet()).forEach(s -> send(s, jsonEventAndPayload));
     }
 
     private void send(WsSession session, String jsonEventAndPayload) {
@@ -133,16 +126,14 @@ public class WebsocketHandler {
         }
     }
 
-
     private void joinRoom(WsSession session, String room) {
         synchronized (roomSessions) {
-            Set<WsSession> set = this.roomSessions
-                    .computeIfAbsent(room, (r) -> new HashSet<>());
+            Set<WsSession> set = this.roomSessions.computeIfAbsent(room, (r) -> new HashSet<>());
             if (set.add(session)) {
                 System.out.println(room + " joined by " + session.getId());
 
-                List<Supplier<WebsocketEvent>> initialSuppliers = this.onJoinRoomSuppliers
-                        .computeIfAbsent(room, (r) -> new ArrayList<>());
+                List<Supplier<WebsocketEvent>> initialSuppliers = this.onJoinRoomSuppliers.computeIfAbsent(room,
+                        (r) -> new ArrayList<>());
                 initialSuppliers.forEach(s -> send(session, s.get()));
 
                 if (Room.PING.equals(room)) {
@@ -169,17 +160,12 @@ public class WebsocketHandler {
 
     private void startPingTimerIfRequired() {
         synchronized (roomSessions) {
-            if (roomSessions.get(Room.PING) != null
-                    && !roomSessions.get(Room.PING).isEmpty()
-                    && timer == null) {
+            if (roomSessions.get(Room.PING) != null && !roomSessions.get(Room.PING).isEmpty() && timer == null) {
                 timer = new Timer(true);
                 timer.scheduleAtFixedRate(new TimerTask() {
                     @Override
                     public void run() {
-                        broadcast(new WebsocketEvent(
-                                Room.PING,
-                                "Ping",
-                                sdf.format(new Date())));
+                        broadcast(new WebsocketEvent(Room.PING, "Ping", sdf.format(new Date())));
                     }
                 }, 1000, 5000);
                 System.out.println("Ping service started");
@@ -189,9 +175,7 @@ public class WebsocketHandler {
 
     private void stopTimerIfRequired() {
         synchronized (roomSessions) {
-            if (roomSessions.get(Room.PING) != null
-                    && roomSessions.get(Room.PING).size() == 0
-                    && timer != null) {
+            if (roomSessions.get(Room.PING) != null && roomSessions.get(Room.PING).size() == 0 && timer != null) {
                 timer.cancel();
                 timer = null;
                 System.out.println("Ping service stopped");

@@ -6,8 +6,6 @@ import ak.eep.web.server.server.WebsocketEvent;
 public class AvailableDataTypesChangedEvent extends WebsocketEvent {
 
     public AvailableDataTypesChangedEvent(final String jsonEncoded) {
-        super(Room.AVAILABLE_DATA_TYPES,
-                "Set",
-                jsonEncoded);
+        super(Room.AVAILABLE_DATA_TYPES, "Set", jsonEncoded);
     }
 }
