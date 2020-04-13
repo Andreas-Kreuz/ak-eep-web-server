@@ -28,9 +28,7 @@ public class LogFileWatcher implements BiConsumer<Path, DirectoryWatcher.Change>
     @Override
     public void accept(Path path, DirectoryWatcher.Change change) {
         if (!logFile.getFileName().equals(path.getFileName())) {
-            System.out.println("NOT MATCHING: \n"
-                    + logFile.toFile().getAbsolutePath() + "\n"
-                    + path.toFile().getAbsolutePath());
+            log.error("NOT MATCHING: \n" + logFile.toFile().getAbsolutePath() + "\n" + path.toFile().getAbsolutePath());
         }
 
         try {
@@ -39,7 +37,7 @@ public class LogFileWatcher implements BiConsumer<Path, DirectoryWatcher.Change>
 
             if (change == DirectoryWatcher.Change.CREATED
                     || (change == DirectoryWatcher.Change.MODIFIED && Files.size(logFile) < lastPosition)) {
-                System.out.println("LOG CLEARED: " + logFile.toFile());
+                log.info("LOG CLEARED: " + logFile.toFile());
                 lastPosition = 0L;
                 reset = true;
             }
@@ -56,8 +54,8 @@ public class LogFileWatcher implements BiConsumer<Path, DirectoryWatcher.Change>
                     i++;
                 }
                 if (i > 0) {
-                    System.out.println(change + " --- Sending " + i + " lines at once.");
-                    //lines.delete(lines.length() - 1, lines.length());
+                    log.info(change + " --- Sending " + i + " lines at once.");
+                    // lines.delete(lines.length() - 1, lines.length());
                     newLines = lines.toString();
                 }
                 lastPosition = inputFile.getFilePointer();

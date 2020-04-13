@@ -1,8 +1,7 @@
 package ak.eep.web.server.server;
 
 public enum RoomSubscriptionAction {
-    SUBSCRIBE("Subscribe"),
-    UNSUBSCRIBE("Unsubscribe");
+    SUBSCRIBE("Subscribe"), UNSUBSCRIBE("Unsubscribe");
 
     private final String stringValue;
 

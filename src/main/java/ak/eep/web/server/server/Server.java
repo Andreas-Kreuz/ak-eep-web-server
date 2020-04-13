@@ -17,10 +17,11 @@ public class Server {
 
     public Server(boolean testMode) {
         app = Javalin.create();
-        // app.enableStaticFiles("C:\\Spiele\\Andreas_Kreuz\\ak-eep-web-server\\target\\classes\\public\\ak-eep-web", Location.EXTERNAL)
+        // app.enableStaticFiles("C:\\Spiele\\Andreas_Kreuz\\ak-eep-web-server\\target\\classes\\public\\ak-eep-web",
+        // Location.EXTERNAL)
         if (!testMode) {
-            app.enableStaticFiles("/public/ak-eep-web", Location.CLASSPATH)
-                    .enableSinglePageMode("/", "/public/ak-eep-web/index.html");
+            app.enableStaticFiles("/public/ak-eep-web", Location.CLASSPATH).enableSinglePageMode("/",
+                    "/public/ak-eep-web/index.html");
         }
         if (testMode) {
             app.enableCorsForAllOrigins();
@@ -35,13 +36,12 @@ public class Server {
 
     public void startServer() {
         app.start(3000);
-        System.out.println("" +
-                "   ___     ___      ___         __      __        _      \n" +
-                "  | __|   | __|    | _ \\   ___  \\ \\    / / ___   | |__   \n" +
-                "  | _|    | _|     |  _/  |___|  \\ \\/\\/ / / -_)  | '_ \\  \n" +
-                "  |___|   |___|   _|_|_   _____   \\_/\\_/  \\___|  |_.__/  \n" +
-                "_|\"\"\"\"\"|_|\"\"\"\"\"|_| \"\"\" |_|     |_|\"\"\"\"\"|_|\"\"\"\"\"|_|\"\"\"\"\"| \n" +
-                "\"`-0-0-'\"`-0-0-'\"`-0-0-'\"`-0-0-'\"`-0-0-'\"`-0-0-'\"`-0-0-' ");
+        System.out.println("" + "   ___     ___      ___         __      __        _      \n"
+                + "  | __|   | __|    | _ \\   ___  \\ \\    / / ___   | |__   \n"
+                + "  | _|    | _|     |  _/  |___|  \\ \\/\\/ / / -_)  | '_ \\  \n"
+                + "  |___|   |___|   _|_|_   _____   \\_/\\_/  \\___|  |_.__/  \n"
+                + "_|\"\"\"\"\"|_|\"\"\"\"\"|_| \"\"\" |_|     |_|\"\"\"\"\"|_|\"\"\"\"\"|_|\"\"\"\"\"| \n"
+                + "\"`-0-0-'\"`-0-0-'\"`-0-0-'\"`-0-0-'\"`-0-0-'\"`-0-0-'\"`-0-0-' ");
     }
 
     /**
@@ -52,8 +52,7 @@ public class Server {
         log.info("Adding URL " + url);
 
         urls.add(url);
-        app.get(url, ctx -> ctx
-                .contentType("application/json").result(contentSupplier.get()));
+        app.get(url, ctx -> ctx.contentType("application/json").result(contentSupplier.get()));
     }
 
     public boolean urlUsed(String url) {
