@@ -104,7 +104,7 @@ public class Main {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             server.getWebsocketHandler().disconnect();
-            System.out.println("Exited correctly ...");
+            log.info("Exited correctly ...");
         }));
     }
 
@@ -124,7 +124,7 @@ public class Main {
     private void connectCommandWriter(Server server) {
         final CommandWriter commandWriter = new CommandWriter(commandOutFilePath);
         server.getWebsocketHandler().addOnMessageConsumer(Room.EEP_COMMAND, (websocketEvent) -> {
-            System.out.println("Executing: " + websocketEvent);
+            log.info("Executing: " + websocketEvent);
             commandWriter.writeCommand(websocketEvent.getPayload());
         });
     }
@@ -139,7 +139,7 @@ public class Main {
         directoryWatcher.addFileConsumer(luaReadyFilePath, (path, change) -> {
             if (change == DirectoryWatcher.Change.CREATED || change == DirectoryWatcher.Change.MODIFIED) {
                 if (!luaReadyFilePath.getFileName().equals(path.getFileName())) {
-                    System.out.println("NOT MATCHING: \n" + luaReadyFilePath.toFile().getAbsolutePath() + "\n"
+                    log.error("NOT MATCHING: \n" + luaReadyFilePath.toFile().getAbsolutePath() + "\n"
                             + path.toFile().getAbsolutePath());
                 }
 
@@ -159,7 +159,7 @@ public class Main {
             String json = new FileContentReader().readFileContentWin1252(jsonDataFilePath);
             jsonContentProvider.updateInput(json);
         } catch (IOException e) {
-            log.info("Cannot read file: " + jsonDataFilePath, e);
+            log.error("Cannot read file: " + jsonDataFilePath, e);
         }
     }
 }

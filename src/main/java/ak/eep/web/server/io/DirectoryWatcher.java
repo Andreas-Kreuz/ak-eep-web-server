@@ -21,7 +21,7 @@ public class DirectoryWatcher {
 
     public DirectoryWatcher(Path directory) throws IOException {
         this.fileConsumers = new ConcurrentHashMap<>();
-        System.out.println("Listening for changes in: " + directory);
+        log.info("Listening for changes in: " + directory);
         this.watchService = FileSystems.getDefault().newWatchService();
         directory.register(this.watchService, StandardWatchEventKinds.ENTRY_CREATE,
                 StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE,
