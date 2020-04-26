@@ -1,20 +1,18 @@
 <p align="center">
-  <img src="assets/img/eep-web-logo-shadow-72.png" alt="" width=72 height=72>
-  <h3 align="center">EEP-Web-Server</h3>
+  <a href="https://andreas-kreuz.github.io/ak-lua-bibliothek-fuer-eep">
+    <img src="assets/img/moved.png" alt="" width=72 height=72>
+  </a>
+  <h3 align="center">EEP-Web-Server ist umgezogen</h3>
   <p align="center">
-    Anwendungsserver der Lua-Bibliothek für EEP-Web.
+  <a href="https://andreas-kreuz.github.io/ak-lua-bibliothek-fuer-eep">https://andreas-kreuz.github.io/ak-lua-bibliothek-fuer-eep</a>
   </p>
-</p>
 <br>
 <hr>
 
-# Verwendung
+# Beschreibung
 
-Dieses Projekt enthält den Web-Anwendungsserver der Lua-Bibliothek für EEP.
+Alle Dateien finden sich nun in
 
-Mehr Informationen auf der Seite von EEP-Web:
-<https://github.com/Andreas-Kreuz/ak-lua-bibliothek-fuer-eep>
+https://andreas-kreuz.github.io/ak-lua-bibliothek-fuer-eep
 
-# Entwicklung
-
-<https://github.com/Andreas-Kreuz/ak-eep-project>
+Dieses Repository wird nicht mehr gepflegt.
